@@ -230,6 +230,40 @@ app.put('/parcels/status/:id', verifyToken, verifyRider, async (req, res) => {
     res.send(result);
 });
 
+// PATCH /parcels/:id/cod-collected — Rider marks COD cash collected from receiver
+app.patch('/parcels/:id/cod-collected', verifyToken, verifyRider, async (req, res) => {
+    await connectDB();
+    const id = req.params.id;
+    console.log(`💰 Rider marking COD collected for parcel ${id}`);
+    const filter = { _id: new ObjectId(id) };
+    const updateDoc = {
+        $set: {
+            riderCodStatus: 'collected',
+            codCollectedAt: new Date().toISOString(),
+        }
+    };
+    const result = await parcelCollection.updateOne(filter, updateDoc);
+    res.send(result);
+});
+
+// PATCH /parcels/:id/cod-payment — Admin confirms COD cash received from rider
+app.patch('/parcels/:id/cod-payment', verifyToken, verifyAdmin, async (req, res) => {
+    await connectDB();
+    const id = req.params.id;
+    console.log(`✅ Admin confirming COD payment for parcel ${id} by ${req.decoded.email}`);
+    const filter = { _id: new ObjectId(id) };
+    const updateDoc = {
+        $set: {
+            paymentStatus: 'paid',
+            codSettled: true,
+            codSettledAt: new Date().toISOString(),
+            codSettledBy: req.decoded.email,
+        }
+    };
+    const result = await parcelCollection.updateOne(filter, updateDoc);
+    res.send(result);
+});
+
 // --- Payment Routes ---
 
 // POST /payments — Create a new payment and assign tracking ID
@@ -273,7 +307,7 @@ app.get('/all-parcels', verifyToken, verifyAdmin, async (req, res) => {
             ]
         };
     }
-    const result = await parcelCollection.find(query).toArray();
+    const result = await parcelCollection.find(query).sort({ _id: -1 }).toArray();
     res.send(result);
 });
 
