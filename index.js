@@ -22,7 +22,12 @@ app.use((req, res, next) => {
 });
 
 app.use(cors({
-    origin: ['http://localhost:5173', 'https://zadex-puce.vercel.app'], // Vite Dev + Vercel Production
+    origin: [
+        'http://localhost:5173',
+        'https://zadex-puce.vercel.app',   // old deployment (keep in case)
+        'https://zadex-client.vercel.app', // new deployment — update if different
+        /^https:\/\/zadex.*\.vercel\.app$/ // allows any zadex-*.vercel.app preview URL
+    ],
     credentials: true // Crucial for cookies
 }));
 app.use(express.json({ limit: '10mb' }));
