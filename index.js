@@ -60,9 +60,16 @@ const applicationCollection = database.collection('applications');
 
 // --- Middleware: Auth ---
 
-// 1. Verify if the token is valid (Generic Auth)
+// 1. Verify if the token is valid (Cookie OR Authorization Bearer header)
 const verifyToken = (req, res, next) => {
-    const token = req.cookies?.token;
+    // Check cookie first, then fall back to Authorization: Bearer <token> header
+    let token = req.cookies?.token;
+    if (!token) {
+        const authHeader = req.headers?.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            token = authHeader.split(' ')[1];
+        }
+    }
     if (!token) {
         return res.status(401).send({ message: 'Unauthorized access' });
     }
@@ -107,7 +114,7 @@ app.get('/', (req, res) => {
 
 // --- Auth Routes ---
 
-// POST /jwt — Issue JWT cookie on login
+// POST /jwt — Issue JWT cookie AND return token in body (for cross-domain support)
 app.post('/jwt', async (req, res) => {
     await connectDB();
     const userEmail = req.body.email;
@@ -123,7 +130,8 @@ app.post('/jwt', async (req, res) => {
             secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
         })
-        .send({ success: true });
+        // Also send token in body so frontend can use Authorization header if cookie fails (cross-domain)
+        .send({ success: true, token });
 });
 
 // POST /logout — Clear JWT cookie
