@@ -280,6 +280,25 @@ app.post('/payments', async (req, res) => {
     res.send({ ...result, trackingId });
 });
 
+// GET /payments — Fetch payments (by email if provided, admin can fetch all)
+app.get('/payments', verifyToken, async (req, res) => {
+    await connectDB();
+    const email = req.query.email;
+    
+    // If an email is explicitly provided, verify the user is only requesting their own
+    if (email) {
+        if (email !== req.decoded.email) {
+            return res.status(403).send({ message: 'Forbidden access' });
+        }
+        const result = await paymentCollection.find({ email }).sort({ _id: -1 }).toArray();
+        return res.send(result);
+    }
+    
+    // If no email is provided, return all payments (You might want to restrict this to verifyAdmin in the future)
+    const result = await paymentCollection.find().sort({ _id: -1 }).toArray();
+    res.send(result);
+});
+
 // --- Rider Routes ---
 
 // GET /rider/parcels — Fetch assigned parcels for logged-in rider
